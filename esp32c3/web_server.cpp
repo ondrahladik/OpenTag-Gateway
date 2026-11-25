@@ -78,17 +78,18 @@ static const char ADMIN_PAGE[] PROGMEM = R"HTML(
 <style>
 :root{color-scheme:dark;--bg:#101113;--panel:#16171b;--line:#2c2d33;--text:#f2f5fa;--muted:#aab4c3;--accent:#f04755;--ok:#52d39a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;padding:24px 16px;display:grid;place-items:center}
-main{width:min(100%,480px);margin:auto}.brand{font-weight:800;font-size:1.3rem;letter-spacing:.02em;text-align:center;margin:0 0 24px}.brand span{color:var(--accent)}
+main{width:min(100%,520px);margin:auto}.brand{font-weight:800;font-size:1.3rem;letter-spacing:.02em;text-align:center;margin:0 0 24px}.brand span{color:var(--accent)}
 .section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,5vw,36px);box-shadow:0 18px 48px #0003}
-.field{display:grid;gap:8px;margin:18px 0}label{font-weight:650}input[type=password]{width:100%;border:1px solid #465164;border-radius:10px;background:#0e1219;color:var(--text);padding:13px 14px;font:inherit;outline:none}input:focus{border-color:#f04755;box-shadow:0 0 0 3px #f0475526}.hint{font-size:.875rem;color:var(--muted);margin:0}
-.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:10px;background:var(--accent);color:white;padding:12px 18px;font:700 1rem inherit;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.check{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.95rem}.check input{width:18px;height:18px;accent-color:var(--accent)}
-.notice{min-height:1.5em;margin:12px 0 0;font-size:.92rem;color:var(--ok)}.notice.error{color:#ff8790}
-@media(max-width:480px){body{padding:18px 12px}.section{border-radius:14px}.row button{width:100%}}
+.field{display:grid;gap:8px;margin:18px 0}label{font-weight:650}input[type=password],select,input[type=file]{width:100%;border:1px solid #465164;border-radius:10px;background:#0e1219;color:var(--text);padding:13px 14px;font:inherit}
+input:focus,select:focus{outline:2px solid #f0475580;outline-offset:1px}.hint{font-size:.875rem;color:var(--muted);margin:0}h1{font-size:1.35rem;margin:0 0 8px}p{color:var(--muted);margin:0 0 18px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}button{width:100%;border:0;border-radius:10px;background:var(--accent);color:white;padding:12px 18px;font:700 1rem system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.check{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.95rem}.check input{width:18px;height:18px;accent-color:var(--accent)}
+.notice{min-height:1.5em;margin:12px 0 0;font-size:.92rem;color:var(--ok);overflow-wrap:anywhere}.notice.error{color:#ff8790}.back{display:block;color:var(--accent);text-align:center;margin-top:18px;font-size:.875rem}
+@media(max-width:520px){body{padding:18px 12px}.section{border-radius:14px}}
 </style></head>
 <body><main><section class="section"><div class="brand">Open<span>Tag</span> Gateway</div>
 <form id="form"><div class="field"><label for="token">API token</label><input id="token" name="token" type="password" autocomplete="new-password" maxlength="512" placeholder="Enter a new token"><p class="hint" id="tokenState">Checking token status… An empty field will leave the current token unchanged.</p></div>
 <label class="check"><input id="clear" type="checkbox"> Remove saved token</label>
-<div class="row" style="margin-top:22px"><button id="save" type="submit">Save settings</button></div><div class="notice" id="notice" role="status" aria-live="polite"></div></form>
+<div class="row"><button id="save" type="submit">Save settings</button></div><div class="notice" id="notice" role="status" aria-live="polite"></div></form>
 <p class="hint" style="margin-top:18px;text-align:center"><a href="/update" style="color:#f04755">Firmware update</a></p>
 </section>
 </main>
@@ -110,8 +111,13 @@ static const char UPDATE_PAGE[] PROGMEM = R"HTML(
 <style>
 :root{color-scheme:dark;--bg:#101113;--panel:#16171b;--line:#2c2d33;--text:#f2f5fa;--muted:#aab4c3;--accent:#f04755;--ok:#52d39a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;padding:24px 16px;display:grid;place-items:center}
-main{width:min(100%,520px);margin:auto}.section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,5vw,36px);box-shadow:0 18px 48px #0003}.brand{font-weight:800;font-size:1.3rem;letter-spacing:.02em;text-align:center;margin:0 0 24px}.brand span{color:var(--accent)}
-h1{font-size:1.35rem;margin:0 0 8px}p{color:var(--muted);margin:0 0 18px}.field{display:grid;gap:8px;margin:18px 0}label{font-weight:650}select,input[type=file]{width:100%;border:1px solid #465164;border-radius:10px;background:#0e1219;color:var(--text);padding:13px 14px;font:inherit}select:focus,input:focus{outline:2px solid #f0475580;outline-offset:1px}.hint{font-size:.875rem;color:var(--muted)}button{width:100%;border:0;border-radius:10px;background:var(--accent);color:white;padding:13px 18px;font:700 1rem inherit;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.notice{min-height:1.5em;margin:12px 0 0;color:var(--ok);overflow-wrap:anywhere}.notice.error{color:#ff8790}.back{display:block;color:var(--accent);text-align:center;margin-top:18px}
+main{width:min(100%,520px);margin:auto}.brand{font-weight:800;font-size:1.3rem;letter-spacing:.02em;text-align:center;margin:0 0 24px}.brand span{color:var(--accent)}
+.section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,5vw,36px);box-shadow:0 18px 48px #0003}
+.field{display:grid;gap:8px;margin:18px 0}label{font-weight:650}input[type=password],select,input[type=file]{width:100%;border:1px solid #465164;border-radius:10px;background:#0e1219;color:var(--text);padding:13px 14px;font:inherit}
+input:focus,select:focus{outline:2px solid #f0475580;outline-offset:1px}.hint{font-size:.875rem;color:var(--muted);margin:0}h1{font-size:1.35rem;margin:0 0 8px}p{color:var(--muted);margin:0 0 18px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}button{width:100%;border:0;border-radius:10px;background:var(--accent);color:white;padding:12px 18px;font:700 1rem system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.check{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.95rem}.check input{width:18px;height:18px;accent-color:var(--accent)}
+.notice{min-height:1.5em;margin:12px 0 0;font-size:.92rem;color:var(--ok);overflow-wrap:anywhere}.notice.error{color:#ff8790}.back{display:block;color:var(--accent);text-align:center;margin-top:18px;font-size:.875rem}
+@media(max-width:520px){body{padding:18px 12px}.section{border-radius:14px}}
 </style></head>
 <body><main><section class="section"><div class="brand">Open<span>Tag</span> Gateway</div>
 <h1>Firmware Update</h1><p>Select a tag and upload an OTA file (*-ota.bin). The update will be transferred to the tag at its next check-in.</p>
