@@ -106,7 +106,7 @@ static const char UPDATE_PAGE[] PROGMEM = R"HTML(
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101113"><title>Firmware Update | OpenTag Gateway</title>
+<meta name="theme-color" content="#101113"><title>Firmware Update</title>
 <style>
 :root{color-scheme:dark;--bg:#101113;--panel:#16171b;--line:#2c2d33;--text:#f2f5fa;--muted:#aab4c3;--accent:#f04755;--ok:#52d39a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;padding:24px 16px;display:grid;place-items:center}
