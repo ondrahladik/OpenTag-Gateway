@@ -1,6 +1,7 @@
 #include "gateway_protocol.h"
 
 #include <ArduinoJson.h>
+#include <Update.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,15 +14,19 @@ static constexpr size_t MAX_FIRMWARE_BYTES = 196608 - 16384;
 static constexpr uint32_t APP_ENTRY = 16384;
 static constexpr uint32_t NRF52811_RAM_START = 0x20000000;
 static constexpr uint32_t NRF52811_RAM_END = 0x20006000;
+static constexpr size_t MIN_GATEWAY_FIRMWARE_BYTES = 8192;
 static bool radioStarted = false;
 
-static uint32_t crc32(const uint8_t* data, size_t len) {
-  uint32_t c = 0xFFFFFFFF;
+static uint32_t updateCrc32(uint32_t c, const uint8_t* data, size_t len) {
   for (size_t i = 0; i < len; i++) {
     c ^= data[i];
     for (uint8_t b = 0; b < 8; b++) c = (c >> 1) ^ ((c & 1) ? 0xEDB88320 : 0);
   }
-  return c ^ 0xFFFFFFFF;
+  return c;
+}
+
+static uint32_t crc32(const uint8_t* data, size_t len) {
+  return updateCrc32(0xFFFFFFFFu, data, len) ^ 0xFFFFFFFFu;
 }
 
 static void reply(JsonDocument& document) {
@@ -111,6 +116,99 @@ static void rejectImage(const char* reason) {
   error["ok"] = false;
   error["error"] = reason;
   reply(error);
+}
+
+static void replyGatewayFirmwareError(const char* reason, bool abortUpdate) {
+  if (abortUpdate) Update.abort();
+  StaticJsonDocument<192> error;
+  error["ok"] = false;
+  error["error"] = reason;
+  reply(error);
+}
+
+static bool receiveFirmwareBytes(uint8_t* buffer, size_t length) {
+  size_t received = 0;
+  uint32_t lastByteAt = millis();
+  while (received < length && static_cast<uint32_t>(millis() - lastByteAt) < 30000) {
+    while (Serial1.available() && received < length) {
+      buffer[received++] = static_cast<uint8_t>(Serial1.read());
+      lastByteAt = millis();
+    }
+    yield();
+  }
+  return received == length;
+}
+
+static void handleGatewayFirmwareUpdate(JsonObjectConst request) {
+  const uint32_t size = request["size"] | 0;
+  const JsonVariantConst crcValue = request["crc32"];
+  if (size < MIN_GATEWAY_FIRMWARE_BYTES || !crcValue.is<uint32_t>()) {
+    replyGatewayFirmwareError("Invalid gateway firmware metadata.", false);
+    return;
+  }
+  const uint32_t expectedCrc = crcValue.as<uint32_t>();
+  if (!Update.begin(size, U_FLASH)) {
+    const String error = String("Unable to begin OTA update: ") + Update.errorString();
+    replyGatewayFirmwareError(error.c_str(), false);
+    return;
+  }
+
+  StaticJsonDocument<128> ready;
+  ready["ok"] = true;
+  ready["state"] = "ready";
+  ready["size"] = size;
+  reply(ready);
+
+  uint8_t buffer[GATEWAY_FIRMWARE_CHUNK_SIZE];
+  uint32_t crcState = 0xFFFFFFFFu;
+  uint32_t received = 0;
+  while (received < size) {
+    uint8_t lengthBytes[2];
+    if (!receiveFirmwareBytes(lengthBytes, sizeof(lengthBytes))) {
+      replyGatewayFirmwareError("Gateway firmware transfer timed out.", true);
+      return;
+    }
+    const size_t chunkSize = lengthBytes[0] | (static_cast<size_t>(lengthBytes[1]) << 8);
+    if (!chunkSize || chunkSize > sizeof(buffer) || chunkSize > size - received) {
+      replyGatewayFirmwareError("Invalid gateway firmware chunk size.", true);
+      return;
+    }
+    if (!receiveFirmwareBytes(buffer, chunkSize)) {
+      replyGatewayFirmwareError("Gateway firmware transfer timed out.", true);
+      return;
+    }
+    if (Update.write(buffer, chunkSize) != chunkSize) {
+      const String error = String("Failed to write gateway firmware: ") + Update.errorString();
+      replyGatewayFirmwareError(error.c_str(), true);
+      return;
+    }
+    crcState = updateCrc32(crcState, buffer, chunkSize);
+    received += chunkSize;
+
+    StaticJsonDocument<128> progress;
+    progress["ok"] = true;
+    progress["state"] = "chunk";
+    progress["received"] = received;
+    reply(progress);
+  }
+
+  if ((crcState ^ 0xFFFFFFFFu) != expectedCrc) {
+    replyGatewayFirmwareError("Gateway firmware CRC32 mismatch.", true);
+    return;
+  }
+  if (!Update.end()) {
+    const String error = String("Gateway firmware image validation failed: ") + Update.errorString();
+    replyGatewayFirmwareError(error.c_str(), false);
+    return;
+  }
+
+  StaticJsonDocument<128> done;
+  done["ok"] = true;
+  done["state"] = "updated";
+  reply(done);
+  Serial1.flush();
+  delay(500);
+  ESP.restart();
 }
 
 static bool isValidNrf52811Firmware(const uint8_t* image, size_t size) {
@@ -230,6 +328,10 @@ static void handleLine(char* line) {
   }
   if (!strcmp(command, "put_firmware")) {
     handleFirmwareUpdate(request.as<JsonObjectConst>());
+    return;
+  }
+  if (!strcmp(command, "put_gateway_firmware")) {
+    handleGatewayFirmwareUpdate(request.as<JsonObjectConst>());
     return;
   }
   if (!strcmp(command, "set_checkin")) {

@@ -3,8 +3,8 @@
 #include "gateway_protocol.h"
 #include "tag_radio.h"
 
-static constexpr int C3_UART_RX_PIN = 4;
-static constexpr int C3_UART_TX_PIN = 5;
+static constexpr int C3_UART_RX_PIN = 10;
+static constexpr int C3_UART_TX_PIN = 11;
 static char lineBuffer[2048];
 static size_t lineLength = 0;
 
