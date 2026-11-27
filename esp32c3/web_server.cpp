@@ -221,7 +221,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}.hint{font-size
 <form id="updateForm">
 <div class="field"><label for="tag">Target tag</label><select id="tag" required><option value="">Loading tags from C6…</option></select></div>
 <div class="field"><label for="firmware">Tag firmware (.bin)</label><input id="firmware" type="file" accept=".bin,application/octet-stream" required></div>
-<button id="submit" type="submit">Upload and queue update</button><div class="notice" id="notice" role="status" aria-live="polite"></div>
+<button id="submit" type="submit">Update tag firmware</button><div class="notice" id="notice" role="status" aria-live="polite"></div>
 </form><div class="footer-links"><a class="back" href="#" id="logout">Sign out</a><a class="back" href="/">Back to home page</a></div>
 </div>
 </section></main>
