@@ -7,7 +7,9 @@ enum C6ReplyKind : uint8_t {
   C6_REPLY_ANY,
   C6_REPLY_LIST,
   C6_REPLY_IMAGE_READY,
-  C6_REPLY_IMAGE_QUEUED
+  C6_REPLY_IMAGE_QUEUED,
+  C6_REPLY_GATEWAY_FW_CHUNK,
+  C6_REPLY_GATEWAY_FW_UPDATED
 };
 
 bool c6UartBegin();
@@ -19,3 +21,5 @@ bool c6UartWaitResponse(C6ReplyKind expected, JsonDocument& response, uint32_t t
 bool c6UartWaitResponseLocked(C6ReplyKind expected, JsonDocument& response, uint32_t timeoutMs);
 bool c6UartSendImage(const uint8_t* data, size_t length);
 bool c6UartSendImageLocked(const uint8_t* data, size_t length);
+bool c6UartSendGatewayFirmwareLocked(const uint8_t* data, size_t length, size_t alreadySent,
+                                     String& error);

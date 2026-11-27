@@ -12,6 +12,7 @@ extern HardwareSerial C6Serial;
 namespace {
 constexpr size_t UART_LINE_CAPACITY = 4096;
 constexpr UBaseType_t UART_REPLY_QUEUE_LENGTH = 4;
+constexpr size_t GATEWAY_FIRMWARE_CHUNK_SIZE = 1024;
 
 struct UartReply {
   char json[UART_LINE_CAPACITY];
@@ -33,6 +34,10 @@ const char* replyName(C6ReplyKind expected) {
       return "image ready";
     case C6_REPLY_IMAGE_QUEUED:
       return "image queued";
+    case C6_REPLY_GATEWAY_FW_CHUNK:
+      return "gateway firmware chunk";
+    case C6_REPLY_GATEWAY_FW_UPDATED:
+      return "gateway firmware update";
     default:
       return "command";
   }
@@ -84,6 +89,10 @@ bool matchesReply(const JsonDocument& response, C6ReplyKind expected) {
       return response["state"] == "ready";
     case C6_REPLY_IMAGE_QUEUED:
       return response["state"] == "queued";
+    case C6_REPLY_GATEWAY_FW_CHUNK:
+      return response["state"] == "chunk";
+    case C6_REPLY_GATEWAY_FW_UPDATED:
+      return response["state"] == "updated";
     default:
       return true;
   }
@@ -188,5 +197,46 @@ bool c6UartSendImageLocked(const uint8_t* data, size_t length) {
     taskYIELD();
   }
   C6Serial.flush();
+  return true;
+}
+
+bool c6UartSendGatewayFirmwareLocked(const uint8_t* data, size_t length, size_t alreadySent,
+                                     String& error) {
+  if (!data || !length) {
+    error = "No firmware data was provided.";
+    return false;
+  }
+  size_t sent = 0;
+  while (sent < length) {
+    const size_t chunk = min(GATEWAY_FIRMWARE_CHUNK_SIZE, length - sent);
+    const uint8_t chunkLength[2] = {
+        static_cast<uint8_t>(chunk & 0xFF),
+        static_cast<uint8_t>((chunk >> 8) & 0xFF),
+    };
+    if (C6Serial.write(chunkLength, sizeof(chunkLength)) != sizeof(chunkLength) ||
+        C6Serial.write(data + sent, chunk) != chunk) {
+      error = String("UART write failed at byte ") + String(sent) + ".";
+      return false;
+    }
+    C6Serial.flush();
+
+    const size_t expectedReceived = alreadySent + sent + chunk;
+    DynamicJsonDocument response(128);
+    if (!c6UartWaitResponseLocked(C6_REPLY_GATEWAY_FW_CHUNK, response, 30000)) {
+      error = String("ESP32-C6 did not acknowledge the chunk ending at byte ") +
+              String(expectedReceived) + ".";
+      return false;
+    }
+    if (!response["ok"].as<bool>()) {
+      error = String(response["error"] | "ESP32-C6 rejected a firmware chunk.");
+      return false;
+    }
+    if (response["received"].as<size_t>() != expectedReceived) {
+      error = String("ESP32-C6 acknowledged ") + String(response["received"].as<size_t>()) +
+              " bytes, expected " + String(expectedReceived) + ".";
+      return false;
+    }
+    sent += chunk;
+  }
   return true;
 }
