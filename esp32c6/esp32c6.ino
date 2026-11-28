@@ -5,11 +5,13 @@
 
 static constexpr int C3_UART_RX_PIN = 10;
 static constexpr int C3_UART_TX_PIN = 11;
+static constexpr char FIRMWARE_VERSION[] = "v1.0.0";
 static char lineBuffer[2048];
 static size_t lineLength = 0;
 
 void setup() {
   Serial.begin(115200);
+  Serial.printf("OpenTag ESP32-C6 %s starting.\n", FIRMWARE_VERSION);
   Serial1.begin(115200, SERIAL_8N1, C3_UART_RX_PIN, C3_UART_TX_PIN);
   Serial.printf("[GW] UART1 ready, RX=GPIO%d TX=GPIO%d\n", C3_UART_RX_PIN, C3_UART_TX_PIN);
   delay(250);

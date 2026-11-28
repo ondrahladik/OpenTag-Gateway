@@ -8,6 +8,7 @@
 #include "wifi_manager.h"
 
 HardwareSerial C6Serial(1);
+static constexpr char FIRMWARE_VERSION[] = "v1.0.0";
 
 void setup() {
 #if ARDUINO_USB_CDC_ON_BOOT
@@ -15,7 +16,7 @@ void setup() {
   const uint32_t serialWaitStarted = millis();
   while (!Serial && static_cast<uint32_t>(millis() - serialWaitStarted) < 2000)
     delay(10);
-  Serial.println("OpenTag ESP32-C3 starting.");
+  Serial.printf("OpenTag ESP32-C3 %s starting.\n", FIRMWARE_VERSION);
 #endif
 
   configurationBegin();
